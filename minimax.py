@@ -7,7 +7,7 @@ def evaluate(board):
     """Evalúa el tablero: diferencia entre piezas azules ("x") y rojas ("o")."""
     red_count = sum(row.count("o") + row.count("O") for row in board)
     blue_count = sum(row.count("x") + row.count("X") for row in board)
-    return blue_count - red_count  # Valor positivo favorece a "x"
+    return blue_count - red_count # Valor positivo favorece a "x"
 
 def minimax(board, depth, alpha, beta, player):
     """

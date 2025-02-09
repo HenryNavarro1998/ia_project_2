@@ -1,58 +1,67 @@
-# Proyecto de Inteligencia Artificial - Actividad 2
+```markdown
+# 🎮 AI Checkers Agent: Minimax vs Q-Learning
 
-Este proyecto implementa varios algoritmos de inteligencia artificial para resolver problemas específicos. A continuación se describen los archivos principales del proyecto y su funcionalidad.
+Proyecto que implementa dos agentes de IA para jugar damas en un tablero 4x4:
+- **Agente basado en conocimiento** usando Minimax con poda Alpha-Beta (Solo para el entrenamiento)
+- **Agente de aprendizaje por refuerzo** utilizando Q-Learning
 
-## Archivos del Proyecto
-
-### `main.py`
-Este archivo es el punto de entrada principal del proyecto. Se encarga de coordinar la ejecución de los diferentes algoritmos y gestionar la interacción con el usuario.
-
-### `minimax.py`
-Contiene la implementación del algoritmo Minimax, utilizado principalmente en juegos de dos jugadores para tomar decisiones óptimas.
-
-### `q_learning.py`
-Implementa el algoritmo de Q-Learning, una técnica de aprendizaje por refuerzo que permite a un agente aprender políticas óptimas a través de la interacción con el entorno.
-
-### `train.py`
-Este archivo se encarga de entrenar los modelos de aprendizaje implementados en el proyecto. Incluye funciones para configurar y ejecutar los procesos de entrenamiento.
-
-### `utils.py`
-Contiene funciones utilitarias y de apoyo que son utilizadas por los otros módulos del proyecto. Estas funciones pueden incluir manejo de datos, visualización de resultados, entre otros.
-
-### `layout.py`
-Define la estructura y el diseño del entorno en el que los algoritmos de inteligencia artificial operan. Este archivo es crucial para la correcta simulación y visualización de los problemas a resolver.
-
-## Instrucciones de Uso
-
-1. Clona el repositorio en tu máquina local.
-2. Asegúrate de tener instaladas las dependencias necesarias.
-3. Ejecuta `main.py` para iniciar el proyecto y seleccionar el algoritmo que deseas probar.
-
-## Instalación de Dependencias
-
-Para instalar las dependencias necesarias, ejecuta el siguiente comando:
+## 📦 Dependencias
+- Python 3.8+
+- Pygame 2.1.2
 
 ```bash
-pip install -r requirements.txt
+# Instalar dependencias
+pip install pygame
 ```
 
-## Ejecución del Entrenamiento del Agente
+## 🚀 Ejecución
 
-Para entrenar el agente utilizando los algoritmos implementados, ejecuta el siguiente comando:
-
+### 1. Entrenar el agente Q-Learning
 ```bash
 python train.py
 ```
+- Entrena durante 1000 episodios contra un oponente aleatorio
+- Guarda la Q-table en `q_table.json`
+- Muestra estadísticas en tiempo real
 
-## Archivo `q_table.json`
+### 2. Jugar contra la IA
+```bash
+python main.py
+```
+- **Modo humano vs IA**:
+  - Jugador humano: `x` (fichas rojas)
+  - IA: `o` (fichas azules)
+- Interfaz gráfica con Pygame
+- Máximo 64 turnos por partida
 
-Este archivo almacena la tabla Q aprendida por el algoritmo de Q-Learning. La tabla Q contiene los valores de recompensa esperada para cada par estado-acción, lo que permite al agente tomar decisiones informadas basadas en su experiencia previa.
+## 🗂 Estructura del Proyecto
+| Archivo         | Descripción                                                                 |
+|-----------------|-----------------------------------------------------------------------------|
+| `layout.py`     | Interfaz gráfica con Pygame (dibujo del tablero y manejo de clics)         |
+| `main.py`       | Lógica principal del juego humano vs IA                                    |
+| `minimax.py`    | Implementación del algoritmo Minimax con poda Alpha-Beta para jugador `x`  |
+| `q_learning.py` | Clase QLearningAgent con funciones de entrenamiento y tabla Q              |
+| `train.py`      | Script de entrenamiento del agente Q-Learning                              |
+| `utils.py`      | Funciones auxiliares (inicialización de tablero, movimientos, reglas)      |
 
-## Requisitos
+## 🕹 Controles
+- **Click izquierdo**: Seleccionar pieza
+- **Click derecho**: Mover pieza seleccionada
+- **Esc**: Salir del juego
 
-- Python 3.x
-- Librerías adicionales especificadas en `requirements.txt`
+## 📌 Notas Técnicas
+- Tablero 4x4 con configuración inicial:
+  ```
+  - o - o
+  - - - -
+  - - - -
+  x - x -
+  ```
+- Heurística básica: Conteo de piezas
+- Sistema de recompensas Q-Learning con 12 factores estratégicos
 
-## Contribuciones
+## 📜 Licencia
+Proyecto educativo bajo licencia MIT. Ver archivo `LICENSE` para más detalles.
 
-Las contribuciones son bienvenidas. Por favor, abre un issue o envía un pull request para discutir cualquier cambio que desees realizar.
+> **Nota:** Los resultados pueden variar dependiendo del hardware y versión de Python
+```
