@@ -1,168 +1,152 @@
+"""
+Implementación de Q-Learning como clase para el jugador "o".
+"""
 from utils import is_game_over, handle_move, generate_moves
 from random import uniform, choice
 import json
 
-Q = {}
-Q_FILE = "q_table.json"
-ALPHA = 0.2
-GAMMA = 0.95
-EPSILON = 1.0
+class QLearningAgent:
+    def __init__(self, alpha=0.2, gamma=0.95, epsilon=1.0, q_file="q_table.json"):
+        self.Q = {}  # Tabla Q: {(estado, acción): valor}
+        self.Q_FILE = q_file
+        self.ALPHA = alpha
+        self.GAMMA = gamma
+        self.EPSILON = epsilon
+        self.load_q_table()
 
-def evaluate(current_board, next_board, game_over):
-    # Configuración de pesos y recompensas
-    REWARDS = {
-        'win': 1000,
-        'lose': -1000,
-        'capture': 80,
-        'king_promote': 120,
-        'king_captured': -150,
-        'piece_loss': -100,
-        'vulnerable_penalty': -40,
-        'king_difference': 60,
-        'piece_difference': 30,
-        'positional_advantage': 20
-    }
+    @staticmethod
+    def evaluate(self, current_board, next_board, game_over):
+        """
+        Calcula la recompensa con nuevos criterios estratégicos y mejor detección de vulnerabilidad.
+        """
+        REWARDS = {
+            'win': 1500,
+            'lose': -1500,
+            'capture': 100,
+            'king_promote': 150,
+            'king_captured': -400,
+            'piece_loss': -220,
+            'vulnerable_penalty': -60,
+            'king_difference': 80,
+            'piece_difference': 40,
+            'positional_advantage': 30,
+            'defensive_position': 25,
+            'multi_capture_potential': 50
+        }
 
-    def count_pieces(board, player):
-        """Cuenta piezas normales y reinas para un jugador"""
-        lower = player.lower()
-        upper = player.upper()
-        pieces = sum(row.count(lower) for row in board)
-        kings = sum(row.count(upper) for row in board)
-        return pieces + kings, kings  # Total piezas, reinas
+        def count_pieces(board, player):
+            lower = player.lower()
+            upper = player.upper()
+            pieces = sum(row.count(lower) for row in board)
+            kings = sum(row.count(upper) for row in board)
+            return pieces + kings, kings
 
-    def get_vulnerable_count(board, player):
-        """Cuenta piezas vulnerables del jugador"""
-        vulnerable = 0
-        for i in range(4):
-            for j in range(4):
-                if board[i][j] and board[i][j].lower() == player.lower() and is_vulnerable(board, i, j, player):
-                    vulnerable += 1
-        return vulnerable
+        def get_vulnerable_count(board, player):
+            vulnerable = 0
+            for i in range(4):
+                for j in range(4):
+                    if board[i][j] and board[i][j].lower() == player.lower():
+                        vulnerable += self.is_vulnerable(board, i, j, player)
+            return vulnerable
 
-    def is_vulnerable(board, row, col, player):
-        """Determina si una pieza está en posición vulnerable"""
-        enemy = 'x' if player.lower() == 'o' else 'o'
-        enemy_kings = enemy.upper()
+        def is_vulnerable(self, board, row, col, player):
+            enemy = 'x' if player.lower() == 'o' else 'o'
+            attack_dirs = [(-1,-1), (-1,1), (1,-1), (1,1)] if board[row][col].isupper() else (
+                [(-1,-1), (-1,1)] if player == 'o' else [(1,-1), (1,1)]
+            )
+            
+            for dx, dy in attack_dirs:
+                if 0 <= row+dx < 4 and 0 <= col+dy < 4:
+                    if board[row+dx][col+dy].lower() == enemy:
+                        if 0 <= row-dx < 4 and 0 <= col-dy < 4:
+                            if board[row-dx][col-dy] is None:
+                                return 1
+            return 0
+
+        # Cálculo de métricas mejorado
+        current_o_pieces, current_o_kings = count_pieces(current_board, 'o')
+        next_o_pieces, next_o_kings = count_pieces(next_board, 'o')
         
-        # Direcciones de ataque según tipo de pieza
-        attack_dirs = []
-        if board[row][col].islower():  # Pieza normal
-            attack_dirs = [(-1, -1), (-1, 1)] if player == 'o' else [(1, -1), (1, 1)]
-        else:  # Reina
-            attack_dirs = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        reward = 0
 
-        for dx, dy in attack_dirs:
-            adj_row = row + dx
-            adj_col = col + dy
-            jump_row = row + 2*dx
-            jump_col = col + 2*dy
+        if game_over:
+            _, winner = is_game_over(next_board)
+            return REWARDS['win'] if winner == 'o' else REWARDS['lose']
 
-            if 0 <= adj_row < 4 and 0 <= adj_col < 4:
-                attacker = board[adj_row][adj_col]
-                if attacker and attacker.lower() == enemy or attacker == enemy_kings:
-                    if 0 <= jump_row < 4 and 0 <= jump_col < 4:
-                        if board[jump_row][jump_col] == '.':
-                            return True
-        return False
+        # Diferencias clave
+        piece_diff = (next_o_pieces - current_o_pieces) * REWARDS['piece_difference']
+        king_diff = (next_o_kings - current_o_kings) * REWARDS['king_difference']
+        reward += piece_diff + king_diff
 
-    # Calculamos métricas para el estado actual y siguiente
-    current_o_pieces, current_o_kings = count_pieces(current_board, 'o')
-    current_x_pieces, current_x_kings = count_pieces(current_board, 'x')
-    
-    next_o_pieces, next_o_kings = count_pieces(next_board, 'o')
-    next_x_pieces, next_x_kings = count_pieces(next_board, 'x')
-    
-    reward = 0
+        # Eventos de captura y promoción
+        reward += (current_o_pieces - next_o_pieces) * REWARDS['piece_loss']
+        reward += (next_o_kings - current_o_kings) * REWARDS['king_promote']
+        
+        # Ventaja posicional mejorada
+        defensive_positions = [(0,1), (0,3), (3,0), (3,2)]
+        defensive_score = sum(1 for i,j in defensive_positions if next_board[i][j] and next_board[i][j].lower() == 'o')
+        reward += defensive_score * REWARDS['defensive_position']
 
-    # Recompensas inmediatas por victoria/derrota
-    if game_over:
-        game_over, winner = is_game_over(next_board)
-        reward += REWARDS['win'] if winner == 'o' else REWARDS['lose']
-        return reward  # Terminamos evaluación si hay ganador
+        # Potencial de captura múltiple
+        multi_capture = sum(1 for move in generate_moves(next_board, 'o') if abs(move[0][0]-move[1][0]) > 1)
+        reward += multi_capture * REWARDS['multi_capture_potential']
 
-    # Diferencial de piezas
-    piece_diff = (next_o_pieces - next_x_pieces) - (current_o_pieces - current_x_pieces)
-    reward += piece_diff * REWARDS['piece_difference']
-    
-    # Diferencial de reinas
-    king_diff = (next_o_kings - next_x_kings) - (current_o_kings - current_x_kings)
-    reward += king_diff * REWARDS['king_difference']
+        return reward
 
-    # Eventos de captura y promoción
-    captured_pieces = (current_x_pieces - next_x_pieces)
-    reward += captured_pieces * REWARDS['capture']
-    
-    lost_pieces = (current_o_pieces - next_o_pieces)
-    reward += lost_pieces * REWARDS['piece_loss']
-    
-    # Coronaciones de reyes
-    new_kings = next_o_kings - current_o_kings
-    reward += new_kings * REWARDS['king_promote']
-    
-    lost_kings = current_o_kings - next_o_kings
-    reward += lost_kings * REWARDS['king_captured']
+    def update_Q_table(self, state, action, reward, next_state, next_moves):
+        """Actualiza la Q-table usando la ecuación de Bellman."""
+        max_future = max([self.Q.get((next_state, m), 0) for m in next_moves], default=0)
+        current = self.Q.get((state, action), 0)
+        self.Q[(state, action)] = current + self.ALPHA * (reward + self.GAMMA * max_future - current)
 
-    # Vulnerabilidad de piezas
-    vulnerable_o = get_vulnerable_count(next_board, 'o')
-    reward += vulnerable_o * REWARDS['vulnerable_penalty']
-    
-    vulnerable_x = get_vulnerable_count(next_board, 'x')
-    reward -= vulnerable_x * REWARDS['vulnerable_penalty']  # Beneficio si enemigo vulnerable
+    def get_action(self, state, moves):
+        """Elige una acción usando epsilon-greedy."""
+        if uniform(0, 1) < self.EPSILON:
+            return choice(moves)  # Exploración
+        else:
+            Q_vals = [self.Q.get((state, move), 0) for move in moves]
+            max_Q = max(Q_vals)
+            return choice([move for i, move in enumerate(moves) if Q_vals[i] == max_Q])
 
-    # Ventaja posicional (control del centro)
-    center_positions = [(1,1), (1,2), (2,1), (2,2)]
-    center_control = sum(1 for i,j in center_positions if next_board[i][j] and next_board[i][j].lower() == 'o')
-    reward += center_control * REWARDS['positional_advantage']
+    def board_to_state(self, board):
+        """Serialización única del estado del tablero"""
+        state = []
+        for row in board:
+            for cell in row:
+                state.append(str(cell) if cell else '-')
+        return ''.join(state)
 
-    return reward
+    def perform_move(self, board):
+        """Ejecuta un paso de Q-Learning y retorna el nuevo tablero."""
+        state = self.board_to_state(board)
+        moves = generate_moves(board, "o")
+        if not moves:
+            return board
+            
+        action = self.get_action(state, moves)
+        new_board = handle_move(board, action)
+        next_state = str(new_board)
+        next_moves = generate_moves(new_board, "x")
+        game_over, _ = is_game_over(new_board)
+        
+        reward = self.evaluate(self, board, new_board, game_over)
+        self.update_Q_table(state, action, reward, next_state, next_moves)
+        return new_board
 
+    def variate_epsilon(self, episode):
+        """Reduce epsilon gradualmente."""
+        self.EPSILON = max(0.1, 0.9 ** (episode % 100))
+        return self.EPSILON
 
-def update_Q_table(state, action, reward, next_state, next_moves):
-    max_future = max([Q.get((next_state, m), 0) for m in next_moves], default=0)
-    current = Q.get((state, action), 0)
-    Q[(state, action)] = current + ALPHA * (reward + GAMMA*max_future - current)
+    def load_q_table(self):
+        """Carga la Q-table desde un archivo JSON."""
+        try:
+            with open(self.Q_FILE, "r") as file:
+                self.Q = {tuple(eval(k)): v for k, v in json.load(file).items()}
+        except FileNotFoundError:
+            self.Q = {}
 
-
-def get_action(state, moves):
-    if uniform(0, 1) < EPSILON:
-        return choice(moves)
-    Q_vals = [Q.get((state, move), 0) for move in moves]
-    max_Q = max(Q_vals)
-    best_moves = [move for i, move in enumerate(moves) if Q_vals[i] == max_Q]
-    return choice(best_moves)
-
-
-def q_learning(board):
-    state = str(board)
-    moves = generate_moves(board, "o")
-    action = get_action(state, moves)
-    new_board = handle_move(board, action)
-    next_state = str(new_board)
-    next_moves = generate_moves(new_board, "x")
-    game_over, _ = is_game_over(new_board)
-    reward = evaluate(board, new_board, game_over)
-    update_Q_table(state, action, reward, next_state, next_moves)
-    return new_board
-
-def variate_epsilon(episode):
-    global EPSILON
-    EPSILON = max(0.1, 0.9 ** (episode % 500))
-    return EPSILON
-
-def load_q_table():
-    global Q
-    try:
-        with open(Q_FILE, "r") as file:
-            Q = json.load(file)
-            Q = {tuple(eval(key)): value for key, value in Q.items()}
-    except FileNotFoundError:
-        Q = {}
-
-
-def save_q_table():
-    try:
-        with open(Q_FILE, "w") as f:
-            json.dump({str(key): value for key, value in Q.items()}, f)
-    except Exception as e:
-        print("Error guardando Q-table:", e)
+    def save_q_table(self):
+        """Guarda la Q-table en un archivo JSON."""
+        with open(self.Q_FILE, "w") as f:
+            json.dump({str(k): v for k, v in self.Q.items()}, f)
