@@ -46,7 +46,6 @@ python main.py
 ## 🕹 Controles
 - **Click izquierdo**: Seleccionar pieza
 - **Click derecho**: Mover pieza seleccionada
-- **Esc**: Salir del juego
 
 ## 📌 Notas Técnicas
 - Tablero 4x4 con configuración inicial:
