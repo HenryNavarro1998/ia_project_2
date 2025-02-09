@@ -63,4 +63,3 @@ python main.py
 Proyecto educativo bajo licencia MIT. Ver archivo `LICENSE` para más detalles.
 
 > **Nota:** Los resultados pueden variar dependiendo del hardware y versión de Python
-```
