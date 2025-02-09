@@ -1,4 +1,3 @@
-```markdown
 # 🎮 AI Checkers Agent: Minimax vs Q-Learning
 
 Proyecto que implementa dos agentes de IA para jugar damas en un tablero 4x4:
@@ -14,7 +13,7 @@ Proyecto que implementa dos agentes de IA para jugar damas en un tablero 4x4:
 pip install pygame
 ```
 
-## 🚀 Ejecución
+# 🚀 Ejecución
 
 ### 1. Entrenar el agente Q-Learning
 ```bash
