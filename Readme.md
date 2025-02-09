@@ -1,4 +1,4 @@
-# 🎮 AI Checkers Agent: Minimax vs Q-Learning
+# 🎮 AI Checkers Agent: Q-Learning
 
 Proyecto que implementa dos agentes de IA para jugar damas en un tablero 4x4:
 - **Agente basado en conocimiento** usando Minimax con poda Alpha-Beta (Solo para el entrenamiento)
