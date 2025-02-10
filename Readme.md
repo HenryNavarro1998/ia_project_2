@@ -4,6 +4,8 @@ Proyecto que implementa dos agentes de IA para jugar damas en un tablero 4x4:
 - **Agente basado en conocimiento** usando Minimax con poda Alpha-Beta (Solo para el entrenamiento)
 - **Agente de aprendizaje por refuerzo** utilizando Q-Learning
 
+![alt text](image.png)
+
 ## 📦 Dependencias
 - Python 3.8+
 - Pygame 2.1.2
