@@ -59,8 +59,3 @@ python main.py
   ```
 - Heurística básica: Conteo de piezas
 - Sistema de recompensas Q-Learning con 12 factores estratégicos
-
-## 📜 Licencia
-Proyecto educativo bajo licencia MIT. Ver archivo `LICENSE` para más detalles.
-
-> **Nota:** Los resultados pueden variar dependiendo del hardware y versión de Python
